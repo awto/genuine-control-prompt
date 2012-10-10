@@ -1,0 +1,19 @@
+name:                genuine-control-prompt
+version:             0.1.0.0
+synopsis:            Typed control/prompt as indexed monad 
+description:         implementation of "Typed Dynamic Control Operators for Delimited Continuations" 
+                     Yukiyoshi Kameyama and Takuo Yonezawa
+homepage:            https://github.com/awto/genuine-control-prompt
+license:             BSD3
+license-file:        LICENSE
+author:              Vitaliy Akimov
+maintainer:          vitaliy.akimov@gmail.com
+category:            Control
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  hs-source-dirs:   src
+  exposed-modules: Control.Monad.Indexed.Cont.Dynamic     
+  build-depends:       base ==4.5.*, indexed<0.2
+  ghc-options: -Wall -Werror
