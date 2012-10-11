@@ -1,46 +1,44 @@
-module Control.Monad.Indexed.Cont.Dynamic(Cont(..),control,prompt,shift,reset,execCont) where
+module Control.Monad.Indexed.Cont.Dynamic(
+                              runCont,prompt,control,shift',reset'
+                              ) where
 
-import Control.Monad.Indexed
+import Control.Monad.Indexed.Cont
+import Control.Monad.Reader
 
-newtype F t = F (t -> Trail t -> t)
+newtype F m t = F (t -> ReaderT (Trail m t) m t)
 
-type Trail t = [F t]
+type Trail m t = [F m t]
 
-newtype Cont t r r' a = Cont { 
-      runCont :: (a -> Trail t -> r') -> Trail t -> r
-      }
+type Cont m t = IxContT (ReaderT (Trail m t) m)
 
-execCont :: Cont t r r' r' -> r
-execCont c = runCont c (\x [] -> x) []
+liftCont :: Monad m => m a -> Cont m t i i a
+liftCont c = IxContT $ \k -> lift c >>= k
 
-instance IxPointed (Cont t) where
-    ireturn v = Cont $ \k t -> k v t 
+runCont :: IxContT (ReaderT t m) a o b -> (b -> ReaderT t m o) -> t -> m a
+runCont c k t = runReaderT (
+                 runIxContT c k
+                 ) t
 
-instance IxMonad (Cont t) where
-    ibind e2 e1 = Cont $ \k t -> runCont e1 (
-          \m1 t1 -> runCont (e2 m1) (\m2 t2 -> k m2 t2) t1) t
+theta1 :: Monad m => a -> ReaderT (Trail m a) m a
+theta1 x = ReaderT $ \t -> case t of
+                []          -> return x
+                (F k1 : t1) -> runReaderT (k1 x) t1
 
-instance IxFunctor (Cont t) where
-    imap f = ibind (ireturn . f)
-
-instance IxApplicative (Cont t) where
-    iap f v = ibind (flip imap v) f
-
-control :: ((a -> Cont t b t t) -> Cont r g r r) -> Cont t g b a
-control e = Cont $ \k t -> let
-                 c = \x -> Cont  $ \k' t' -> k x (
-                            t ++ F (\x' t'' -> k' x' t'') : t')
+control :: Monad m => ((a -> Cont m t b t t) -> Cont m r g r r) 
+        -> Cont m t g b a
+control e = IxContT $ \k -> ReaderT $ \t -> let
+                 c = \x -> IxContT  
+                     $ \k' -> local 
+                              (\t' -> t ++ F (\x' -> k' x') : t') 
+                              (k x)
                  in runCont (e c) theta1 []
 
-theta1 :: a -> Trail a -> a
-theta1 x t = case t of
-                []          -> x
-                (F k1 : t1) -> k1 x t1
-
-prompt, reset :: Cont t b t t -> b
+prompt, reset' :: Monad m => Cont m t b t t -> m b
 prompt e = runCont e theta1 []
 
-reset = prompt
+reset' = prompt
 
-shift :: ((a -> Cont t' i i b) -> Cont r g r r) -> Cont t g b a
-shift f = control (\k -> f (ireturn . reset . k))
+shift' :: Monad m => ((a -> Cont m t' i i b) -> Cont m r g r r) 
+       -> Cont m t g b a
+shift' f = control (\k -> f (liftCont . reset' . k))
+

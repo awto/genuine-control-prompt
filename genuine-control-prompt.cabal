@@ -1,5 +1,5 @@
 name:                genuine-control-prompt
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Typed control/prompt as indexed monad 
 description:         implementation of "Typed Dynamic Control Operators for Delimited Continuations" 
                      Yukiyoshi Kameyama and Takuo Yonezawa
@@ -15,5 +15,5 @@ cabal-version:       >=1.8
 library
   hs-source-dirs:   src
   exposed-modules: Control.Monad.Indexed.Cont.Dynamic     
-  build-depends:       base ==4.5.*, indexed<0.2
+  build-depends:       base >= 4.4 && < 5,  mtl >= 2.1.1 && < 2.2, indexed < 0.2, indexed-extras == 0.1.*
   ghc-options: -Wall -Werror
